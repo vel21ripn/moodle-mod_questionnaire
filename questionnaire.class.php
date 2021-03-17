@@ -1367,6 +1367,26 @@ class questionnaire {
             $respinfo .= $groupname;
             $respinfo .= $timesubmitted;
             $this->page->add_to_page('respondentinfo', $this->renderer->respondent_info($respinfo));
+
+	    if(isset($this->survey->end_doc) && $this->survey->end_doc) {
+		$fs = get_file_storage();
+
+		$files = $fs->get_area_files(
+			$this->context->id,'mod_questionnaire','end_doc',$this->survey->end_doc);
+		foreach($files as $xfile) {
+			if($xfile->is_directory()) continue;
+			# pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash(), ]);
+			$a_name = preg_replace('/\.[a-z]+$/u','',basename($xfile->get_filename()));
+	        	$linkname = '&nbsp;'.get_string('printblank', 'questionnaire').' '.$a_name;
+        	        $title = get_string('printblanktooltip', 'questionnaire').' '.$a_name;
+			$url = '/mod/questionnaire/printpdf.php?qid='.$this->id.'&amp;rid='.$rid.'&amp;courseid='.$this->course->id.
+				'&amp;hash='.$xfile->get_contenthash().'&amp;tm='.time();
+                	$link = new moodle_url($url);
+		        $this->page->add_to_page('respondentinfo','<br>'.
+	                	$this->renderer->action_link($link, $linkname, null, array('title' => $title),
+					new pix_icon('t/print', $title)));
+		}
+	    }
         }
 
         // We don't want to display the print icon in the print popup window itself!
@@ -1535,7 +1555,7 @@ class questionnaire {
         if (empty($this->survey->id)) {
             // Create a new survey in the database.
             $fields = array('name', 'realm', 'title', 'subtitle', 'email', 'theme', 'thanks_page', 'thank_head',
-                'thank_body', 'feedbacknotes', 'info', 'feedbacksections', 'feedbackscores', 'chart_type');
+                'thank_body', 'feedbacknotes', 'info', 'feedbacksections', 'feedbackscores', 'chart_type','end_doc');
             // Theme field deprecated.
             $record = new stdClass();
             $record->id = 0;
@@ -1563,7 +1583,7 @@ class questionnaire {
             }
 
             $fields = array('name', 'realm', 'title', 'subtitle', 'email', 'theme', 'thanks_page',
-                'thank_head', 'thank_body', 'feedbacknotes', 'info', 'feedbacksections', 'feedbackscores', 'chart_type');
+                'thank_head', 'thank_body', 'feedbacknotes', 'info', 'feedbacksections', 'feedbackscores', 'chart_type','end_doc');
             $name = $DB->get_field('questionnaire_survey', 'name', array('id' => $this->survey->id));
 
             // Trying to change survey name.
@@ -2101,6 +2121,7 @@ class questionnaire {
             $response->questionname = $question->position . '. ' . $question->name;
             $response->questiontext = $question->content;
             $response->answers = [];
+	    $response->type = $question->type;
             if ($question->type_id == 8) {
                 $choices = [];
                 $cids = [];

@@ -99,6 +99,15 @@ class settings_form extends \moodleform {
         $mform->setDefault('email', $questionnaire->survey->email);
         $mform->addHelpButton('email', 'sendemail', 'questionnaire');
 
+	$draftitemid = file_get_submitted_draft_itemid('end_doc');
+	file_prepare_draft_area($draftitemid, $questionnaire->cm->id, 'mod_questionnaire', 'end_doc',
+		       	$questionnaire->survey->id, array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 50));
+        $filemanageroptions = array(
+	        'accepted_types' => ['odt'], 'maxbytes' => 0,    'subdirs' => 0,
+	        'maxfiles' => 5,         'mainfile' => false);
+        $mform->addElement('filemanager', 'end_doc', get_string('selectfiles'),
+		null, $filemanageroptions);
+
         // Hidden fields.
         $mform->addElement('hidden', 'id', 0);
         $mform->setType('id', PARAM_INT);

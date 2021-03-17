@@ -15,19 +15,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Questionnaire version information.
+ * Strings for component 'questionnaire', language 'en'
  *
- * @package mod_questionnaire
- * @author  Mike Churchward
- * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    mod_questionnaire
+ * @copyright  2018 onward Mike Churchward (mike.churchward@poetopensource.org)
+ * @author     Mike Churchward
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+$string['not_odt'] = 'Недопустимый тип файла. Можно использовать только .ODT файлы.';
+$string['nofiles'] = 'Отсутствуют файлы шаблонов.';
 
-$plugin->version  = 2021062301;  // The current module version (Date: YYYYMMDDXX)
-$plugin->requires = 2019052000; // Moodle version (3.7).
-
-$plugin->component = 'mod_questionnaire';
-
-$plugin->release  = '3.11.0 Beta (Build - 2020111800)';
-$plugin->maturity  = MATURITY_BETA;

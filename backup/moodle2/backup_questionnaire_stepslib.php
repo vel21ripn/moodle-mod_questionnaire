@@ -48,7 +48,7 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
         $survey = new backup_nested_element('survey', array('id'), array(
             'name', 'courseid', 'realm', 'status', 'title', 'email', 'subtitle',
             'info', 'theme', 'thanks_page', 'thank_head', 'thank_body', 'feedbacksections',
-            'feedbacknotes', 'feedbackscores', 'chart_type'));
+            'feedbacknotes', 'feedbackscores', 'chart_type', 'end_doc'));
 
         $questions = new backup_nested_element('questions');
 
@@ -195,6 +195,7 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
 
         $survey->annotate_files('mod_questionnaire', 'info', 'id'); // By survey->id
         $survey->annotate_files('mod_questionnaire', 'thankbody', 'id'); // By survey->id.
+        $survey->annotate_files('mod_questionnaire', 'end_doc', null); // By survey->id.
 
         $question->annotate_files('mod_questionnaire', 'question', 'id'); // By question->id.
 
