@@ -1382,8 +1382,9 @@ class questionnaire {
 			$url = '/mod/questionnaire/printpdf.php?qid='.$this->id.'&amp;rid='.$rid.'&amp;courseid='.$this->course->id.
 				'&amp;hash='.$xfile->get_contenthash().'&amp;tm='.time();
                 	$link = new moodle_url($url);
+            		$action = new popup_action('click', $link, $name, $options);
 		        $this->page->add_to_page('respondentinfo','<br>'.
-	                	$this->renderer->action_link($link, $linkname, null, array('title' => $title),
+	                	$this->renderer->action_link($link, $linkname, $action, array('title' => $title),
 					new pix_icon('t/print', $title)));
 		}
 	    }
