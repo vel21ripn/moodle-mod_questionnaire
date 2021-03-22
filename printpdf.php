@@ -106,6 +106,7 @@ function add_user_info(&$answers,$user) {
     $answers['MNAME_I'] = mb_substr(mb_strtoupper($middlename),0,1);
     if($answers['MNAME_I']) $answers['MNAME_I'] .= '.';
     $answers['FIO_I'] = $answers['LNAME'].' '.$answers['FNAME_I'].$answers['MNAME_I'];
+    $answers['CDATA'] = strftime("%d.%m.%Y",time());
 }
 
 function replace_content($answers,$content) {
