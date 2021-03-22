@@ -1370,6 +1370,7 @@ class questionnaire {
 
 	    if(isset($this->survey->end_doc) && $this->survey->end_doc) {
 		$fs = get_file_storage();
+	        $this->page->add_to_page('respondentinfo','<ul class="qpdflink">');
 
 		$files = $fs->get_area_files(
 			$this->context->id,'mod_questionnaire','end_doc',$this->survey->end_doc);
@@ -1383,10 +1384,11 @@ class questionnaire {
 				'&amp;hash='.$xfile->get_contenthash().'&amp;tm='.time();
                 	$link = new moodle_url($url);
             		$action = new popup_action('click', $link, $name, $options);
-		        $this->page->add_to_page('respondentinfo','<br>'.
+		        $this->page->add_to_page('respondentinfo','<li>'.
 	                	$this->renderer->action_link($link, $linkname, $action, array('title' => $title),
 					new pix_icon('t/print', $title)));
 		}
+		$this->page->add_to_page('respondentinfo','</ul>');
 	    }
         }
 
