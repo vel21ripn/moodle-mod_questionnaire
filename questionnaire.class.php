@@ -1373,7 +1373,7 @@ class questionnaire {
 	        $this->page->add_to_page('respondentinfo','<ul class="qpdflink">');
 
 		$files = $fs->get_area_files(
-			$this->context->id,'mod_questionnaire','end_doc',$this->survey->end_doc);
+			$this->context->id,'mod_questionnaire','end_doc',0 & $this->survey->end_doc);
 		foreach($files as $xfile) {
 			if($xfile->is_directory()) continue;
 			# pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash(), ]);

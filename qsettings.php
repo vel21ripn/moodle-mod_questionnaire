@@ -104,9 +104,9 @@ if ($settings = $settingsform->get_data()) {
                                                      $sdata->id, array('subdirs' => true), $sdata->thank_body);
     $sdata->email = $settings->email;
     $draftitemid = file_get_submitted_draft_itemid('end_doc');
+    file_save_draft_area_files($settings->end_doc, $context->id, 'mod_questionnaire','end_doc', 0,
+	    array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 5));
     $sdata->end_doc = $settings->end_doc;
-    file_save_draft_area_files($settings->end_doc, $context->id, 'mod_questionnaire','end_doc',
-	    				$draftitemid, array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 5));
 
     $sdata->courseid = $settings->courseid;
     if (!($sid = $questionnaire->survey_update($sdata))) {

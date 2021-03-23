@@ -43,9 +43,9 @@ if (!($questionnaire->capabilities->view && (($rid == 0) || $questionnaire->can_
     // Should never happen, unless called directly by a snoop...
     print_error('nopermissions', 'moodle', $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id);
 }
-if(!isset($questionnaire->survey->end_doc) || !$questionnaire->survey->end_doc) {
-    print_error('nofiles', 'questionnaire', $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id);
-}
+#if(!isset($questionnaire->survey->end_doc) || !$questionnaire->survey->end_doc) {
+#    print_error('nofiles', 'questionnaire', $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id);
+#}
 
 $rdata = new stdClass;
 $questionnaire->add_questions($rid);
@@ -53,11 +53,12 @@ $questionnaire->add_questions($rid);
 $context = context_module::instance($cm->id);
 $fs = get_file_storage();
 $files = $fs->get_area_files(
-	$context->id,'mod_questionnaire','end_doc',$questionnaire->survey->end_doc);
+	$context->id,'mod_questionnaire','end_doc',0 & $questionnaire->survey->end_doc);
+
 foreach($files as $xfile) {
 	if($xfile->is_directory()) continue;
-	if(0) pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash() ]);
 	if($xfile->get_contenthash() != $hash) continue;
+	if(0) pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash() ]);
 	$a_name = preg_replace('/\.[a-z]+$/u','',basename($xfile->get_filename()));
 	$fname = $CFG->dataroot.'/filedir/'.substr($hash,0,2).'/'.substr($hash,2,2).'/'.$hash;
 
@@ -165,7 +166,7 @@ foreach ($questionnaire->get_structured_response($rid) as $q) {
 }
 add_user_info($answers,$user);
 
-$file = $fs->get_file($context->id,'mod_questionnaire','end_doc',$questionnaire->survey->end_doc,
+$file = $fs->get_file($context->id,'mod_questionnaire','end_doc',0 & $questionnaire->survey->end_doc,
 	'/',$xfile->get_filename());
 
 if($file) {
