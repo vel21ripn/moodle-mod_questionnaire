@@ -1037,8 +1037,10 @@ function questionnaire_upgrade_2021062301() {
     $table = new xmldb_table('questionnaire_survey');
     $field = new xmldb_field('end_doc');
 # $type, $precision=null, $unsigned=null, $notnull=null, $sequence=null, $default=null, $previous=null
-    $field->set_attributes(XMLDB_TYPE_CHAR, '32', false, true, false, '', 'chart_type');
-    $dbman->add_field($table, $field);
+    $field->set_attributes(XMLDB_TYPE_CHAR, '32', false, false, false, '', 'chart_type');
+    if (!$dbman->field_exists($table, $field)) {
+	    $dbman->add_field($table, $field);
+    }
     $DB->execute("UPDATE {questionnaire_survey} SET end_doc='' WHERE end_doc is NULL");
     return $status;
 }
