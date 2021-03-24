@@ -72,6 +72,9 @@ $draftideditor = file_get_submitted_draft_itemid('thankbody');
 $currentinfo = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'thankbody',
                 $sdata->sid, array('subdirs' => true), $questionnaire->survey->thank_body);
 $sdata->thank_body = array('text' => $currentinfo, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
+$draftitemid = file_get_submitted_draft_itemid('end_doc');
+file_prepare_draft_area($draftitemid, $context->id, 'mod_questionnaire', 'end_doc', 0);
+$sdata->end_doc = $draftitemid;
 
 $settingsform->set_data($sdata);
 
