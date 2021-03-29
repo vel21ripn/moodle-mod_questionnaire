@@ -199,7 +199,7 @@ if($file) {
 		clearstatcache(false,$t_name.'.pdf');
 		$out = shell_exec("/usr/bin/python3 /usr/local/bin/unoconv --connection 'socket,host=127.0.0.1,port=10001,tcpNoDelay=1;urp;StarOffice.ComponentContext' -f pdf $t_name.odt");
 		if(file_exists($t_name.'.pdf'))
-			send_file($t_name.'.pdf',$name.'.pdf',-1);
+			send_file($t_name.'.pdf',preg_replace($questionnaire->hidden_reg,'',$name).'.pdf',-1);
 		$out .= " No output file";
 	} while(false);
 	pre_print_r([$t_name,$out]);

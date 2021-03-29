@@ -50,6 +50,8 @@ class questionnaire {
      */
     public $page = false;
 
+    public $hidden_reg = '/(-|_hidden)$/u';
+
     // Class Methods.
 
     /*
@@ -1381,7 +1383,8 @@ class questionnaire {
 			if(!($this->capabilities->createtemplates ||
 			     $this->capabilities->preview ||
 			     $this->capabilities->manage) &&
-				preg_match('/-$/',$a_name)) continue;
+				preg_match($this->hidden_reg,$a_name)) continue;
+			$a_name = preg_replace($this->hidden_reg,'',$a_name);
 	        	$linkname = '&nbsp;'.get_string('printblank', 'questionnaire').' '.$a_name;
         	        $title = get_string('printblanktooltip', 'questionnaire').' '.$a_name;
 			$url = '/mod/questionnaire/printpdf.php?qid='.$this->id.'&amp;rid='.$rid.'&amp;courseid='.$this->course->id.
