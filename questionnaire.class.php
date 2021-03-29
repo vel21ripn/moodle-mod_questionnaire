@@ -1378,6 +1378,10 @@ class questionnaire {
 			if($xfile->is_directory()) continue;
 			# pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash(), ]);
 			$a_name = preg_replace('/\.[a-z]+$/u','',basename($xfile->get_filename()));
+			if(!($this->capabilities->createtemplates ||
+			     $this->capabilities->preview ||
+			     $this->capabilities->manage) &&
+				preg_match('/-$/',$a_name)) continue;
 	        	$linkname = '&nbsp;'.get_string('printblank', 'questionnaire').' '.$a_name;
         	        $title = get_string('printblanktooltip', 'questionnaire').' '.$a_name;
 			$url = '/mod/questionnaire/printpdf.php?qid='.$this->id.'&amp;rid='.$rid.'&amp;courseid='.$this->course->id.
