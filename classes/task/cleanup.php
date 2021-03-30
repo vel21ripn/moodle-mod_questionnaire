@@ -41,5 +41,13 @@ class cleanup extends \core\task\scheduled_task {
         require_once($CFG->dirroot . '/mod/questionnaire/locallib.php');
 
         questionnaire_cleanup();
+        $cachedir = $CFG->dataroot.'/mod_questionnaire';
+        if(!is_dir($cachedir)) return;
+        $tm = time()-3*24*3600;
+        foreach(glob($cachedir.'/*') as $f) {
+            if(is_file($f) && preg_match('/\.(odt|pdf)$/',$f)) {
+               	if(filemtime($f) < $tm) unlink($f);
+            }
+	}
     }
 }

@@ -21,6 +21,7 @@ require_once($CFG->dirroot.'/mod/questionnaire/NameCaseLib/Library/NCLNameCaseRu
 $qid = required_param('qid', PARAM_INT);
 $rid = required_param('rid', PARAM_INT);
 $courseid = required_param('courseid', PARAM_INT);
+$fid = required_param('fid', PARAM_INT);
 $hash = required_param('hash', PARAM_RAW);
 $null = null;
 
@@ -58,6 +59,7 @@ $files = $fs->get_area_files(
 foreach($files as $xfile) {
 	if($xfile->is_directory()) continue;
 	if($xfile->get_contenthash() != $hash) continue;
+	if($xfile->get_id() != $fid) continue;
 	if(0) pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash() ]);
 	$a_name = preg_replace('/\.[a-z]+$/u','',basename($xfile->get_filename()));
 	$fname = $CFG->dataroot.'/filedir/'.substr($hash,0,2).'/'.substr($hash,2,2).'/'.$hash;
@@ -65,7 +67,7 @@ foreach($files as $xfile) {
 	if($xfile->get_mimetype() != 'application/vnd.oasis.opendocument.text') {
 		print_error('not_odt', 'questionnaire', $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id);
 	}
-	send_template_file($context,$questionnaire,$fs,$xfile,$fname,$a_name,$hash,$rid);
+	send_template_file($context,$questionnaire,$fs,$xfile,$fname,$a_name,$hash,$rid,$courseid);
 	die;
 }
 send_file_not_found();
@@ -100,12 +102,13 @@ function add_user_info(&$answers,$user) {
     $answers['FNAME'] = $firstname;
     $answers['FNAME1'] = $nc->q($firstname)[1];
     $answers['FNAME_I'] = mb_substr(mb_strtoupper($firstname),0,1);
-    if($answers['FNAME_I']) $answers['FNAME_I'] .= '.';
     $middlename = $fio_p[2] ? $fio_p[2]:'';
     $answers['MNAME'] = $middlename;
     $answers['MNAME1'] = $nc->q($middlename)[1];
     $answers['MNAME_I'] = mb_substr(mb_strtoupper($middlename),0,1);
+    $answers['FIO_F'] = $answers['LNAME'].' '.$answers['FNAME_I'].' '.$answers['MNAME_I'];
     if($answers['MNAME_I']) $answers['MNAME_I'] .= '.';
+    if($answers['FNAME_I']) $answers['FNAME_I'] .= '.';
     $answers['FIO_I'] = $answers['LNAME'].' '.$answers['FNAME_I'].$answers['MNAME_I'];
     $answers['CDATA'] = strftime("%d.%m.%Y",time());
 }
@@ -143,14 +146,13 @@ for($i=0; $i < $cl; $i++) {
 return $ret;
 }
 
-function send_template_file($context,$questionnaire,$fs,$xfile,$fname,$name,$hash,$rid) {
+function send_template_file($context,$questionnaire,$fs,$xfile,$fname,$name,$hash,$rid,$courseid) {
 global $CFG,$USER,$DB;
 
 $t_dir = qa_cache_dir();
-
 $resp = $DB->get_record('questionnaire_response',['id'=>$rid]);
 $user = $DB->get_record('user',['id'=>$resp->userid]);
-
+$course = get_course($courseid);
 $answers = [];
 foreach ($questionnaire->get_structured_response($rid) as $q) {
     $qt = preg_replace('/^\s*[0-9]+\.\s+/u','',$q->questionname);
@@ -165,47 +167,66 @@ foreach ($questionnaire->get_structured_response($rid) as $q) {
     }
 }
 add_user_info($answers,$user);
+$answers['COURSE'] = $course->shortname;
+$acrc = dechex(crc32(json_encode($answers)));
 
 $file = $fs->get_file($context->id,'mod_questionnaire','end_doc',0 & $questionnaire->survey->end_doc,
 	'/',$xfile->get_filename());
 
 if($file) {
-	$t_name = $t_dir.'/'.$rid.'_'.$hash;
-	clearstatcache(false,$t_name.'.odt');
-	if(file_exists($t_name.'.odt')) unlink($t_name.'.odt');
+	$t_name = $t_dir.'/'.$rid.'_'.$acrc.'_'.$hash;
+	clearstatcache(true,$t_name.'.odt');
+	clearstatcache(true,$t_name.'.pdf');
 	$out = 'Success';
 	do {
-		$file->copy_content_to($t_name.'.odt');
 		if(!file_exists($t_name.'.odt')) {
+		    $file->copy_content_to($t_name.'.odt');
+		    if(!file_exists($t_name.'.odt')) {
 			$out = "copy failed";
 			break;
+		    }
+		    $fileToModify='content.xml';
+		    $zip = new ZipArchive;
+		    if ($zip->open($t_name.'.odt') === TRUE) {
+		        $oldContents = $zip->getFromName($fileToModify);
+		        #pre_print_r($answers);
+		        $newContents = replace_content($answers, $oldContents, $user);
+		        #echo $newContents;
+		        #die;
+		        $zip->deleteName($fileToModify);
+		        $zip->addFromString($fileToModify, $newContents);
+		        $zip->close();
+		    } else {
+		        $out = "open zip failed";
+		        break;
+		    }
 		}
-		$fileToModify='content.xml';
-		$zip = new ZipArchive;
-		if ($zip->open($t_name.'.odt') === TRUE) {
-		    $oldContents = $zip->getFromName($fileToModify);
-		    #pre_print_r($answers);
-		    $newContents = replace_content($answers, $oldContents, $user);
-		    #echo $newContents;
-		    #die;
-		    $zip->deleteName($fileToModify);
-		    $zip->addFromString($fileToModify, $newContents);
-		    $zip->close();
-		} else {
-		    $out = "open zip failed";
-		    break;
+
+		if(preg_match($questionnaire->src_reg,$name)) {
+			$out_name = preg_replace($questionnaire->src_reg,'',$name);
+			$out_name = preg_replace($questionnaire->hidden_reg,'',$out_name);
+			send_files_trans($t_name,$out_name,'.odt',$answers);
 		}
-		if(file_exists($t_name.'.pdf')) unlink($t_name.'.pdf');
-		clearstatcache(false,$t_name.'.pdf');
-		$out = shell_exec("/usr/bin/python3 /usr/local/bin/unoconv --connection 'socket,host=127.0.0.1,port=10001,tcpNoDelay=1;urp;StarOffice.ComponentContext' -f pdf $t_name.odt");
-		if(file_exists($t_name.'.pdf'))
-			send_file($t_name.'.pdf',preg_replace($questionnaire->hidden_reg,'',$name).'.pdf',-1);
+		if(!file_exists($t_name.'.pdf')) 
+			$out = shell_exec("/usr/bin/python3 /usr/local/bin/unoconv --connection 'socket,host=127.0.0.1,port=10001,tcpNoDelay=1;urp;StarOffice.ComponentContext' -f pdf $t_name.odt");
+		if(file_exists($t_name.'.pdf')) {
+			$out_name = preg_replace($questionnaire->hidden_reg,'',$name);
+			send_files_trans($t_name,$out_name,'.pdf',$answers);
+		}
 		$out .= " No output file";
 	} while(false);
-	pre_print_r([$t_name,$out]);
+	pre_print_r(['BUG!',$t_name,$out]);
 } else {
 	send_file_not_found();
 }
 die;
 }
 
+function send_files_trans($t_name,$name,$ext,&$answers) {
+	$name = preg_replace('/_course/u',' '.$answers['COURSE'],$name);
+	$name = preg_replace('/_fio/u',' '.$answers['FIO_F'],$name);
+	$name = preg_replace('/_data/u',' '.$answers['CDATA'],$name);
+	$name = preg_replace('/\s+/u','_',$name);
+	send_file($t_name.$ext,$name.$ext,-1);
+	die;
+}

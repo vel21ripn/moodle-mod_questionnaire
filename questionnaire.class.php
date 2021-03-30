@@ -50,7 +50,8 @@ class questionnaire {
      */
     public $page = false;
 
-    public $hidden_reg = '/(-|_hidden)$/u';
+    public $hidden_reg = '/_hidden/u';
+    public $src_reg = '/_src/u';
 
     // Class Methods.
 
@@ -1385,10 +1386,12 @@ class questionnaire {
 			     $this->capabilities->manage) &&
 				preg_match($this->hidden_reg,$a_name)) continue;
 			$a_name = preg_replace($this->hidden_reg,'',$a_name);
+			$a_name = preg_replace($this->src_reg,'',$a_name);
+			$a_name = preg_replace('/_(data|fio|course)/','',$a_name);
 	        	$linkname = '&nbsp;'.get_string('printblank', 'questionnaire').' '.$a_name;
         	        $title = get_string('printblanktooltip', 'questionnaire').' '.$a_name;
 			$url = '/mod/questionnaire/printpdf.php?qid='.$this->id.'&amp;rid='.$rid.'&amp;courseid='.$this->course->id.
-				'&amp;hash='.$xfile->get_contenthash().'&amp;tm='.time();
+				'&amp;hash='.$xfile->get_contenthash().'&amp;fid='.$xfile->get_id().'&amp;tm='.time();
                 	$link = new moodle_url($url);
             		$action = new popup_action('click', $link, $name, $options);
 		        $this->page->add_to_page('respondentinfo','<li>'.
