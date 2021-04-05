@@ -207,8 +207,11 @@ if($file) {
 			$out_name = preg_replace($questionnaire->hidden_reg,'',$out_name);
 			send_files_trans($t_name,$out_name,'.odt',$answers);
 		}
-		if(!file_exists($t_name.'.pdf')) 
-			$out = shell_exec("/usr/bin/python3 /usr/local/bin/unoconv --connection 'socket,host=127.0.0.1,port=10001,tcpNoDelay=1;urp;StarOffice.ComponentContext' -f pdf $t_name.odt");
+		if(!file_exists($t_name.'.pdf')) {
+			$cmd = implode(' ',[$CFG->unoconv[0],'unoconv/unoconv','--connection',
+				escapeshellarg($CFG->unoconv[1]),'-f','pdf',"$t_name.odt"]);
+			$out = shell_exec($cmd);
+		}
 		if(file_exists($t_name.'.pdf')) {
 			$out_name = preg_replace($questionnaire->hidden_reg,'',$name);
 			send_files_trans($t_name,$out_name,'.pdf',$answers);

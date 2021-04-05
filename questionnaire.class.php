@@ -1372,6 +1372,7 @@ class questionnaire {
             $this->page->add_to_page('respondentinfo', $this->renderer->respondent_info($respinfo));
 
 	    if(isset($this->survey->end_doc) && $this->survey->end_doc) {
+	      if(isset($CFG->unoconv) && is_array($CFG->unoconv)) {
 		$fs = get_file_storage();
 	        $this->page->add_to_page('respondentinfo','<ul class="qpdflink">');
 
@@ -1399,6 +1400,9 @@ class questionnaire {
 					new pix_icon('t/print', $title)));
 		}
 		$this->page->add_to_page('respondentinfo','</ul>');
+	      } else {
+		$this->page->add_to_page('respondentinfo','<h4>CFG->unoconv not confgured</h4>');
+	      }
 	    }
         }
 

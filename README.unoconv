@@ -1,0 +1,16 @@
+
+Standard configuration:
+
+$CFG->unoconv=['/opt/libreoffice7.0/program/python',
+        'socket,host=127.0.0.1,port=10001,tcpNoDelay=1;urp;StarOffice.ComponentContext'];
+
+Running LO/OO
+
+#!/bin/bash
+
+unset DISPLAY
+
+nohup /opt/libreoffice7.0/program/soffice "-env:UserInstallation=file:///tmp/LibO_Process1" \
+ --headless --invisible --nocrashreport --nodefault --nofirststartwizard --nologo --norestore \
+ --accept="socket,port=10001;urp;" 2>/dev/zero &
+
