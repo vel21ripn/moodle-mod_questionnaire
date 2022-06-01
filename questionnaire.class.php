@@ -1401,7 +1401,7 @@ class questionnaire {
 		}
 		$this->page->add_to_page('respondentinfo','</ul>');
 	      } else {
-		$this->page->add_to_page('respondentinfo','<h4>CFG->unoconv not confgured</h4>');
+		$this->page->add_to_page('respondentinfo','<h4>Error: \$CFG->unoconv is missing or invalid</h4>');
 	      }
 	    }
         }

@@ -175,19 +175,21 @@ $file = $fs->get_file($context->id,'mod_questionnaire','end_doc',0 & $questionna
 
 if($file) {
 	$t_name = $t_dir.'/'.$rid.'_'.$acrc.'_'.$hash;
-	clearstatcache(true,$t_name.'.odt');
-	clearstatcache(true,$t_name.'.pdf');
 	$out = 'Success';
+	$src = $t_name.'.odt';
+	$dst = $t_name.'.pdf';
+	clearstatcache(true,$src);
+	clearstatcache(true,$dst);
 	do {
-		if(!file_exists($t_name.'.odt')) {
-		    $file->copy_content_to($t_name.'.odt');
-		    if(!file_exists($t_name.'.odt')) {
+		if(!file_exists($src)) {
+		    $file->copy_content_to($src);
+		    if(!file_exists($src)) {
 			$out = "copy failed";
 			break;
 		    }
 		    $fileToModify='content.xml';
 		    $zip = new ZipArchive;
-		    if ($zip->open($t_name.'.odt') === TRUE) {
+		    if ($zip->open($src) === TRUE) {
 		        $oldContents = $zip->getFromName($fileToModify);
 		        #pre_print_r($answers);
 		        $newContents = replace_content($answers, $oldContents, $user);
@@ -207,18 +209,29 @@ if($file) {
 			$out_name = preg_replace($questionnaire->hidden_reg,'',$out_name);
 			send_files_trans($t_name,$out_name,'.odt',$answers);
 		}
-		if(!file_exists($t_name.'.pdf')) {
-			$cmd = implode(' ',[$CFG->unoconv[0],'unoconv/unoconv','--connection',
-				escapeshellarg($CFG->unoconv[1]),'-f','pdf',"$t_name.odt"]);
-			$out = shell_exec($cmd);
+		if(file_exists($dst) && file_too_old($dst)) unlink($dst);
+		if(!file_exists($dst)) {
+			if(!isset($CFG->unoconv) || !is_array($CFG->unoconv)) {
+				$out = "invalid \$CFG->unoconv";
+				break;
+			}
+			if(preg_match('|^https?://|',$CFG->unoconv[0])) {
+				$out = unoconv_http($t_name);
+			} else
+			  if(preg_match('|python|',$CFG->unoconv[0]) &&
+			     preg_match('|host=.*port=|',$CFG->unoconv[1])) {
+				$out = unoconv_local($t_name);
+			} else
+				$out = "invalid \$CFG->unoconv";
 		}
 		if(file_exists($t_name.'.pdf')) {
 			$out_name = preg_replace($questionnaire->hidden_reg,'',$name);
 			send_files_trans($t_name,$out_name,'.pdf',$answers);
 		}
-		$out .= " No output file";
+		if(!$out) $out = "<p>No output file</p>";
 	} while(false);
-	pre_print_r(['BUG!',$t_name,$out]);
+	echo "<h1>Error!</h1>\n<h4>$out</h4><p>{$t_name}</p>";
+	#pre_print_r(['BUG!',$out,$t_name]);
 } else {
 	send_file_not_found();
 }
@@ -232,4 +245,58 @@ function send_files_trans($t_name,$name,$ext,&$answers) {
 	$name = preg_replace('/\s+/u','_',$name);
 	send_file($t_name.$ext,$name.$ext,-1);
 	die;
+}
+
+function unoconv_http($t_name) {
+    global $CFG;
+    if(!function_exists('curl_version'))
+	    return " CURL extension missing or disabled";
+    $dst = $t_name.'.pdf';
+    try {
+	$cFile = curl_file_create($t_name.'.odt');
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_URL,$CFG->unoconv[0]);
+	curl_setopt($ch, CURLOPT_TIMEOUT , 10);
+	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT , 3);
+	curl_setopt($ch, CURLOPT_POST,1);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, [$CFG->unoconv[1]=>$cFile]);
+	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+	$fp = fopen ($dst, 'w+');
+	if(!$fp) throw new Exception('create output file');
+	curl_setopt($ch, CURLOPT_FILE, $fp);
+	$result=curl_exec($ch);
+	$code=curl_getinfo($ch,CURLINFO_HTTP_CODE);
+	curl_close ($ch);
+	fclose($fp);
+	if($code != 200) throw new Exception("http error code: $code");
+	if(!file_exists($dst) || filesize($dst) < 1000) throw new Exception("Empty output file");
+	if(mime_content_type($dst) != 'application/pdf')
+		throw new Exception("output file is ".mime_content_type($dst));
+	return 0;
+    } catch (Exception $e) {
+	if(file_exists($dst)) unlink($dst);
+	return $e->getMessage();
+    }
+}
+function unoconv_local($t_name) {
+	global $CFG;
+
+    $dst = $t_name.'.pdf';
+    $cmd = implode(' ',[escapeshellarg($CFG->unoconv[0]),'unoconv/unoconv','--connection',
+		escapeshellarg($CFG->unoconv[1]),'-f','pdf',"$t_name.odt",'2>&1']);
+    try {
+	$out = shell_exec($cmd);
+	if($out) throw new Exception($out);
+	if(!file_exists($dst) || filesize($dst) < 1000) throw new Exception("Empty output file");
+	if(mime_content_type($dst) != 'application/pdf')
+		throw new Exception("output file is ".mime_content_type($dst));
+	return 0;
+    } catch (Exception $e) {
+	if(file_exists($dst)) unlink($dst);
+	return $e->getMessage();
+    }
+}
+
+function file_too_old($name,$day=3) {
+	return filemtime($name) < time()-$day*24*3600;
 }
