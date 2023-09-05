@@ -1267,10 +1267,45 @@ class questionnaire {
 
         return;
     }
+    static private function check_age($age,$str) {
+	$tm = time();
+	$birthday = new \DateTime();
+	if(intval($age) <= 0 || $tm < $age) return 0;
+	$birthday = new \DateTime();
+	$birthday->setTimestamp($age);
+	$interval = $birthday->diff(new \DateTime());
 
+	if(preg_match('/^([\+\-])?(\d+)([dy])?$/',$str,$m)) {
+	    $k = isset($m[3]) && $m[3] ? $m[3]:'y';
+	    $op = isset($m[1]) && $m[1] ? $m[1]:'=';
+	    switch($k) {
+	    	case 'y': $d = intval($interval->y); break;
+		case 'd': $d = intval($interval->days); break;
+	    }
+	    #pre_print_r([$age,$str,$m,$k,$op,$d]);
+	    if(!isset($d)) return 0;
+	    switch($op) {
+	    	case '=': return $d == intval($m[2]) ? 1:0;
+	    	case '-': return $d < intval($m[2]) ? 1:0;
+	    	case '+': return $d == intval($m[2]) ? 1:0;
+	    }
+	    return 0;
+	}
+	if(preg_match('/^(\d+)-(\d+)([dy])?$/',$str,$m)) {
+	    $k = isset($m[3]) && $m[3] ? $m[3]:'y';
+	    switch($k) {
+	    	case 'y': $d = intval($interval->y); break;
+		case 'd': $d = intval($interval->days); break;
+	    }
+	    #pre_print_r([$age,$str,$m,$k,$d]);
+	    if(!isset($d)) return 0;
+	    return $d >= intval($m[1]) && $d <= intval($m[2]) ? 1:0;
+	}
+	return 0;
+    }
     private function print_survey_start($message, $section, $numsections, $hasrequired, $rid='', $blankquestionnaire=false,
                                         $outputtarget = 'html') {
-        global $CFG, $DB;
+        global $CFG, $DB, $USER;
         require_once($CFG->libdir.'/filelib.php');
 
         $userid = '';
@@ -1380,16 +1415,31 @@ class questionnaire {
 			$this->context->id,'mod_questionnaire','end_doc',0 & $this->survey->end_doc);
 		foreach($files as $xfile) {
 			if($xfile->is_directory()) continue;
-			# pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash(), ]);
 			$a_name = preg_replace('/\.[a-z]+$/u','',basename($xfile->get_filename()));
+			#pre_print_r([$xfile->get_filename(), $xfile->get_filesize(), $xfile->get_mimetype(), $xfile->get_contenthash(),$a_name ]);
+			$skip_by_age = 0;
+			if(isset($CFG->profile_age)) {
+			    if(isset($USER->profile[$CFG->profile_age])) {
+				if(preg_match('/^(.*)?\{age(.*?)\}(.*)?$/ui',$a_name,$m)) {
+			    	    #pre_print_r([$USER->profile,$m]);
+				    if(!self::check_age($USER->profile[$CFG->profile_age],$m[2])) {
+					$skip_by_age = 1;
+#				    } else {
+#					$a_name = $m[1].$m[3];
+				    }
+				}
+			    }
+			}
+			$skip_hidden = preg_match($this->hidden_reg,$a_name);
 			if(!($this->capabilities->createtemplates ||
 			     $this->capabilities->preview ||
 			     $this->capabilities->manage) &&
-				preg_match($this->hidden_reg,$a_name)) continue;
+				($skip_hidden || $skip_by_age)) continue;
 			$a_name = preg_replace($this->hidden_reg,'',$a_name);
 			$a_name = preg_replace($this->src_reg,'',$a_name);
-			$a_name = preg_replace('/_(data|fio|course)/','',$a_name);
+			$a_name = preg_replace('/(_data|_fio|_course|\{age.*?\})/u','',$a_name);
 	        	$linkname = '&nbsp;'.get_string('printblank', 'questionnaire').' '.$a_name;
+			$s2 = $skip_by_age ? '&nbsp; ('.get_string('age_cond', 'questionnaire').')':'';
         	        $title = get_string('printblanktooltip', 'questionnaire').' '.$a_name;
 			$url = '/mod/questionnaire/printpdf.php?qid='.$this->id.'&amp;rid='.$rid.'&amp;courseid='.$this->course->id.
 				'&amp;hash='.$xfile->get_contenthash().'&amp;fid='.$xfile->get_id().'&amp;tm='.time();
@@ -1397,7 +1447,7 @@ class questionnaire {
             		$action = new popup_action('click', $link, $name, $options);
 		        $this->page->add_to_page('respondentinfo','<li>'.
 	                	$this->renderer->action_link($link, $linkname, $action, array('title' => $title),
-					new pix_icon('t/print', $title)));
+					new pix_icon('t/print', $title)).$s2);
 		}
 		$this->page->add_to_page('respondentinfo','</ul>');
 	      } else {
@@ -2587,7 +2637,7 @@ class questionnaire {
                     $a++;
                 }
                 // The rest of the entries (less than the number of cols).
-                if ($entries) {
+                if ($entries && isset($resparr[$a])) {
                     $respcols->{$colname}->respondentlink[] = $resparr[$a];
                     $entries--;
                     $a++;

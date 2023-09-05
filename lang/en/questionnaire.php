@@ -656,4 +656,5 @@ $string['yourresponses'] = 'Your responses';
 $string['crontask'] = 'Questionnaire cleanup job';
 $string['not_odt'] = 'Invalid file type. Only .ODT files can be used.';
 $string['nofiles'] = 'Template files are missing.';
+$string['age_cond'] = 'Age is not matched';
 
