@@ -810,7 +810,6 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         // Questionnaire savepoint reached.
         upgrade_mod_savepoint(true, 2018050106, 'questionnaire');
     }
-
     if ($oldversion < 2018110103) {
 
         // Define field id to be added to questionnaire_question.
@@ -983,6 +982,7 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         upgrade_mod_savepoint(true, 2020062301, 'questionnaire');
     }
 
+
     if ($oldversion < 2022092200) {
         // Add new slider question type.
         $exist = $DB->record_exists('questionnaire_question_type', ['typeid' => 11]);
@@ -995,6 +995,11 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
             $DB->insert_record('questionnaire_question_type', $questiontype);
         }
         upgrade_mod_savepoint(true, 2022092200, 'questionnaire');
+    }
+
+    if ($oldversion < 2022121601) {
+	questionnaire_add_end_doc();
+	upgrade_mod_savepoint(true, 2022121601, 'questionnaire');
     }
 
     return true;
@@ -1041,5 +1046,23 @@ function questionnaire_upgrade_2007120101() {
         }
     }
 
+    return $status;
+}
+
+function questionnaire_add_end_doc() {
+    global $DB;
+
+    $dbman = $DB->get_manager(); // Loads ddl manager and xmldb classes.
+    $status = true;
+
+    // Upgrade the questionnaire_question_type table to use typeid.
+    $table = new xmldb_table('questionnaire_survey');
+    $field = new xmldb_field('end_doc');
+# $type, $precision=null, $unsigned=null, $notnull=null, $sequence=null, $default=null, $previous=null
+    $field->set_attributes(XMLDB_TYPE_CHAR, '32', false, false, false, '', 'chart_type');
+    if (!$dbman->field_exists($table, $field)) {
+	    $dbman->add_field($table, $field);
+    }
+    $DB->execute("UPDATE {questionnaire_survey} SET end_doc='' WHERE end_doc is NULL");
     return $status;
 }

@@ -682,5 +682,7 @@ $string['yesno_help'] = 'Simple Yes/No question.';
 $string['yourresponse'] = 'View your response(s)';
 $string['yourresponses'] = 'View your response(s)';
 $string['crontask'] = 'Questionnaire cleanup job';
+$string['not_odt'] = 'Invalid file type. Only .ODT files can be used.';
+$string['nofiles'] = 'Template files are missing.';
 $string['nopermissions'] = 'Sorry, but you do not currently have permissions to view this page or perform this action.';
 $string['unanswered'] = 'Unanswered';

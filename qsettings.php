@@ -78,6 +78,9 @@ $draftideditor = file_get_submitted_draft_itemid('thankbody');
 $currentinfo = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'thankbody',
                 $sdata->sid, array('subdirs' => true), $questionnaire->survey->thank_body);
 $sdata->thank_body = array('text' => $currentinfo, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
+$draftitemid = file_get_submitted_draft_itemid('end_doc');
+file_prepare_draft_area($draftitemid, $context->id, 'mod_questionnaire', 'end_doc', 0);
+$sdata->end_doc = $draftitemid;
 
 $settingsform->set_data($sdata);
 
@@ -109,6 +112,10 @@ if ($settings = $settingsform->get_data()) {
     $sdata->thank_body = file_save_draft_area_files($sdata->thankitemid, $context->id, 'mod_questionnaire', 'thankbody',
                                                     $sdata->id, array('subdirs' => true), $sdata->thank_body);
     $sdata->email = $settings->email;
+    $draftitemid = file_get_submitted_draft_itemid('end_doc');
+    file_save_draft_area_files($settings->end_doc, $context->id, 'mod_questionnaire','end_doc', 0,
+	    array('subdirs' => 0, 'maxbytes' => 0, 'maxfiles' => 5));
+    $sdata->end_doc = $settings->end_doc;
 
     $sdata->courseid = $settings->courseid;
     if (!($sid = $questionnaire->survey_update($sdata))) {
