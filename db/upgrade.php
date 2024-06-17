@@ -997,9 +997,14 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         upgrade_mod_savepoint(true, 2022092200, 'questionnaire');
     }
 
-    if ($oldversion < 2022121601) {
+    if ($oldversion < 2022121600.02) {
+        // Upgrade for downloadoptions - useridentityfields setting.
+        upgrade_mod_savepoint(true, 2022121600.02, 'questionnaire');
+    }
+
+    if ($oldversion < 2022121602) {
 	questionnaire_add_end_doc();
-	upgrade_mod_savepoint(true, 2022121601, 'questionnaire');
+	upgrade_mod_savepoint(true, 2022121602, 'questionnaire');
     }
 
     return true;
