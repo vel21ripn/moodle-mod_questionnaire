@@ -25,20 +25,20 @@ $fid = required_param('fid', PARAM_INT);
 $hash = required_param('hash', PARAM_RAW);
 $null = null;
 
-if (! $questionnaire = $DB->get_record("questionnaire", array("id" => $qid))) {
+if (! $questionnaire_rec = $DB->get_record("questionnaire", array("id" => $qid))) {
     print_error('invalidcoursemodule');
 }
-if (! $course = $DB->get_record("course", array("id" => $questionnaire->course))) {
+if (! $course = $DB->get_record("course", array("id" => $questionnaire_rec->course))) {
     print_error('coursemisconf');
 }
-if (! $cm = get_coursemodule_from_instance("questionnaire", $questionnaire->id, $course->id)) {
+if (! $cm = get_coursemodule_from_instance("questionnaire", $questionnaire_rec->id, $course->id)) {
     print_error('invalidcoursemodule');
 }
 
 // Check login and get context.
 require_login($courseid);
 
-$questionnaire = new questionnaire(0, $questionnaire, $course, $cm);
+$questionnaire = new questionnaire($course, $cm, 0, $questionnaire_rec);
 // If you can't view the questionnaire, or can't view a specified response, error out.
 if (!($questionnaire->capabilities->view && (($rid == 0) || $questionnaire->can_view_response($rid)))) {
     // Should never happen, unless called directly by a snoop...
