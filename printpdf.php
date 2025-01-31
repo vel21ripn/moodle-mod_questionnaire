@@ -88,6 +88,8 @@ function add_user_info(&$answers,$user) {
     $answers['USERNAME'] = $user->username;
     $answers['EMAIL'] = $user->email;
     $fio = trim($user->lastname.' '.$user->firstname);
+    if(isset($user->middlename) && $user->middlename)
+	$fio = trim($fio.' '.$user->middlename);
     $fio = preg_replace('/\s\s+/',' ',$fio);
     $fio = preg_replace('/-\s+-$/','',$fio);
     $fio = preg_replace('/\s*-$/','',$fio);
@@ -102,7 +104,8 @@ function add_user_info(&$answers,$user) {
     $answers['FNAME'] = $firstname;
     $answers['FNAME1'] = $nc->q($firstname)[1];
     $answers['FNAME_I'] = mb_substr(mb_strtoupper($firstname),0,1);
-    $middlename = $fio_p[2] ? $fio_p[2]:'';
+
+    $middlename = isset($user->middlename) && $user->middlename ? $user->middlename:'';
     $answers['MNAME'] = $middlename;
     $answers['MNAME1'] = $nc->q($middlename)[1];
     $answers['MNAME_I'] = mb_substr(mb_strtoupper($middlename),0,1);
@@ -111,6 +114,9 @@ function add_user_info(&$answers,$user) {
     if($answers['FNAME_I']) $answers['FNAME_I'] .= '.';
     $answers['FIO_I'] = $answers['LNAME'].' '.$answers['FNAME_I'].$answers['MNAME_I'];
     $answers['CDATA'] = strftime("%d.%m.%Y",time());
+    $insta = explode('.',$user->institution,2);
+    $answers['ORG1'] = trim($insta[0]);
+    $answers['ORG2'] = trim($insta[1] ?? $insta[0]);
 }
 
 function replace_content($answers,$content) {
