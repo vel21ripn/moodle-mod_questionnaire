@@ -17,6 +17,7 @@
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/questionnaire/questionnaire.class.php');
 require_once($CFG->dirroot.'/mod/questionnaire/NameCaseLib/Library/NCLNameCaseRu.php');
+require_once($CFG->dirroot.'/user/profile/lib.php');
 
 $qid = required_param('qid', PARAM_INT);
 $rid = required_param('rid', PARAM_INT);
@@ -119,7 +120,21 @@ function add_user_info(&$answers,$user) {
     $answers['ORG2'] = trim($insta[1] ?? $insta[0]);
 }
 
-function replace_content($answers,$content) {
+function get_profile_data($var,$val,$pd_type) {
+    #error_log("PD ".print_r([$var,$val,$pd_type[$var] ?? 'none'],1),3,"/tmp/lms_dev.q.log");
+    if(isset($pd_type[$var])) {
+	$pd = $pd_type[$var]->datatype;
+	#error_log("PD ".print_r([$var,$val,$pd],1),3,"/tmp/lms_dev.q.log");
+	if($pd == 'text' || $pd == 'textarea' || $pd == 'menu' || $pd == 'masked' ) return $val;
+	if($pd == 'checkbox') return $val ? 'V':' ';
+	if($pd == 'datetime')
+	    return strftime($pd_type[$var]->param3 ? "%d.%m.%Y %H:%M:%S":"%d.%m.%Y",$val);
+    	return '?.'.$pd.'.'.$val;
+    }
+    return $val;
+}
+
+function replace_content($answers,$content,$uprofile,$pd_type) {
 $ret = '';
 
 $cl = strlen($content);
@@ -139,8 +154,9 @@ for($i=0; $i < $cl; $i++) {
 	    if($c == ']' && $content[$i+1] == ']') {
 		if(isset($answers[$var])) {
 		    $ret .= $answers[$var];
-#		} else {
-#		    $ret .= '???????';
+		} else if(isset($uprofile[$var])) {
+		    # FIXME type of field
+		    $ret .= get_profile_data($var,$uprofile[$var],$pd_type);
 		}
 	   	$st = 0;
 		$i++;
@@ -158,6 +174,19 @@ global $CFG,$USER,$DB;
 $t_dir = qa_cache_dir();
 $resp = $DB->get_record('questionnaire_response',['id'=>$rid]);
 $user = $DB->get_record('user',['id'=>$resp->userid]);
+profile_load_data($user);
+$uprof_data_type = $DB->get_records_sql('select id,categoryid,shortname,datatype,name,param1,param2,param3 from {user_info_field}',[]);
+$pd_type = [];
+foreach ($uprof_data_type as $pd) {
+	$pd_type[$pd->shortname] = $pd;
+}
+$uprofile = [];
+foreach ((array)$user as $k=>$v) {
+    if(substr($k,0,14) == 'profile_field_')
+	$uprofile[substr($k,14)] = $v;
+      else
+	$uprofile[$k] = $v;
+}
 $course = get_course($courseid);
 $answers = [];
 foreach ($questionnaire->get_structured_response($rid) as $q) {
@@ -174,7 +203,9 @@ foreach ($questionnaire->get_structured_response($rid) as $q) {
 }
 add_user_info($answers,$user);
 $answers['COURSE'] = $course->shortname;
-$acrc = dechex(crc32(json_encode($answers)));
+#error_log("Answer ".print_r(['answ'=>$answers,'user'=>$uprofile,'pd'=>$pd_type],1),3,"/tmp/lms.fdpo.q.log");
+
+$acrc = dechex(crc32(json_encode($answers).json_encode($uprofile).json_encode($pd_type)));
 
 $file = $fs->get_file($context->id,'mod_questionnaire','end_doc',0 & $questionnaire->survey->end_doc,
 	'/',$xfile->get_filename());
@@ -198,7 +229,7 @@ if($file) {
 		    if ($zip->open($src) === TRUE) {
 		        $oldContents = $zip->getFromName($fileToModify);
 		        #pre_print_r($answers);
-		        $newContents = replace_content($answers, $oldContents, $user);
+		        $newContents = replace_content($answers, $oldContents, $uprofile, $pd_type);
 		        #echo $newContents;
 		        #die;
 		        $zip->deleteName($fileToModify);
@@ -245,6 +276,7 @@ die;
 }
 
 function send_files_trans($t_name,$name,$ext,&$answers) {
+	$name = preg_replace('/\{age.*?\}/u','',$name);
 	$name = preg_replace('/_course/u',' '.$answers['COURSE'],$name);
 	$name = preg_replace('/_fio/u',' '.$answers['FIO_F'],$name);
 	$name = preg_replace('/_data/u',' '.$answers['CDATA'],$name);
